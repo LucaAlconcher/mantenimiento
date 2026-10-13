@@ -75,7 +75,7 @@ export default function EquipoForm() {
         <label className="text-sm font-medium">Ubicación</label>
         <input
           name="ubicacion"
-          placeholder="Ej: El Triángulo - Cerro Dragón - PAE"
+          placeholder="Ej: El Triángulo"
           className="rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
         />
       </div>
