@@ -1,69 +1,88 @@
-import Image from "next/image";
+import Link from "next/link";
+import { PlusCircle } from "lucide-react";
+import { listEquipos, listMantenimientos } from "@/lib/db";
+import { TIPO_EQUIPO_COLOR, TIPO_EQUIPO_LABEL } from "@/lib/labels";
+import PageHeader from "@/components/PageHeader";
+import Badge from "@/components/Badge";
+import ClickableRow from "@/components/ClickableRow";
 
-export default function Home() {
+export default async function Home() {
+  const [equipos, mantenimientos] = await Promise.all([
+    listEquipos(),
+    listMantenimientos(),
+  ]);
+
+  const ultimaFechaPorEquipo = new Map<string, string>();
+  const totalPorEquipo = new Map<string, number>();
+  for (const m of mantenimientos) {
+    const actual = ultimaFechaPorEquipo.get(m.equipoId);
+    if (!actual || m.fecha > actual) ultimaFechaPorEquipo.set(m.equipoId, m.fecha);
+    totalPorEquipo.set(m.equipoId, (totalPorEquipo.get(m.equipoId) ?? 0) + 1);
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="flex flex-col">
+      <PageHeader
+        title="Equipos"
+        count={equipos.length}
+        description="Inventario de DJI Dock y drones bajo seguimiento."
+        action={
+          <Link
+            href="/equipos/nuevo"
+            className="flex items-center gap-1.5 rounded-md bg-violet-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-500"
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            <PlusCircle size={16} />
+            Nuevo equipo
+          </Link>
+        }
+      />
+
+      {equipos.length === 0 ? (
+        <div className="m-6 rounded-lg border border-dashed bg-white p-10 text-center">
+          <p className="text-slate-500">Todavía no registraste ningún equipo.</p>
+          <Link
+            href="/equipos/nuevo"
+            className="mt-4 inline-block rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500"
           >
-            Documentation
-          </a>
+            Agregar el primer equipo
+          </Link>
         </div>
-      </main>
+      ) : (
+        <div className="m-6 overflow-hidden rounded-lg border bg-white">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b bg-slate-50 text-xs font-medium uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3">Tipo</th>
+                <th className="px-4 py-3">Alias</th>
+                <th className="px-4 py-3">Modelo / N° serie</th>
+                <th className="px-4 py-3">Ubicación</th>
+                <th className="px-4 py-3">Mantenimientos</th>
+                <th className="px-4 py-3">Último mantenimiento</th>
+              </tr>
+            </thead>
+            <tbody>
+              {equipos.map((equipo) => (
+                <ClickableRow key={equipo.id} href={`/equipos/${equipo.id}`}>
+                  <td className="px-4 py-3">
+                    <Badge className={TIPO_EQUIPO_COLOR[equipo.tipo]}>
+                      {TIPO_EQUIPO_LABEL[equipo.tipo]}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3 font-medium text-slate-900">{equipo.alias}</td>
+                  <td className="px-4 py-3 text-slate-500">
+                    {equipo.modelo || "—"} {equipo.numeroSerie && `· N/S ${equipo.numeroSerie}`}
+                  </td>
+                  <td className="px-4 py-3 text-slate-500">{equipo.ubicacion || "—"}</td>
+                  <td className="px-4 py-3 text-slate-500">{totalPorEquipo.get(equipo.id) ?? 0}</td>
+                  <td className="px-4 py-3 text-slate-500">
+                    {ultimaFechaPorEquipo.get(equipo.id) ?? "Sin registros"}
+                  </td>
+                </ClickableRow>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
